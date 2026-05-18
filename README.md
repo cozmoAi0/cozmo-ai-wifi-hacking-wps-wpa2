@@ -19,6 +19,36 @@ only for fun
 
 
 
+[1]  📡 Scan Networks (airodump-ng)
+[2]  🔍 Check WPS on Target (wash)
+
+[3]  ✨ Pixie Dust Attack - Fast, exploits WPS v1.0
+[4]  💀 Null PIN Attack - Tests empty PIN vulnerability  
+[5]  💪 PIN Bruteforce - Tries all PINs (takes hours)
+
+[6]  🎭 Evil Twin Attack - Rogue AP + handshake capture
+[7]  🔑 PMKID Attack - No client needed
+
+[8]  🧹 Cleanup & Reset
+[0]  🚪 Exit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
