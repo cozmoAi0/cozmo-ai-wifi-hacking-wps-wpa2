@@ -56,6 +56,19 @@ only for fun
 
 
 for download = get clone https://github.com/cozmoAi0/cozmo-ai-wifi-hacking-wps-wpa2.git
+
+
+
+
+
+
+
+
+
+
+
+
+
 for start=
 cd cozmom-ai-wifi-hacking-wps-wpa2
 sudo python3 'cozmo ai wps-wpa2'
